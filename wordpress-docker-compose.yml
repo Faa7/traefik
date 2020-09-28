@@ -1,0 +1,64 @@
+version: '3'
+
+networks:
+  # here we will define the traefik network
+  traefik:
+    external: true
+  # the network for the application backend (WordPress) itself
+  backend:
+
+  wordpress:
+    image: wordpress
+    restart: always
+    environment:
+      # Hook WordPress up with MySQL 
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_USER: wordpressuser
+      WORDPRESS_DB_PASSWORD: password
+      WORDPRESS_DB_NAME: wordpressdb
+    volumes:
+      # save the content of WordPress an enable local modifications
+      - ./wordpress/data:/var/www/html # allows for local modifications editing php files etc
+    networks:
+      # define the traefik and the backend network
+      - traefik
+      - backend
+    depends_on:
+        # Enable the MySQL dependency
+        - mysql
+    labels:
+      # Turn on Traefik
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # HTTPS Entrypoint
+ and FQDN
+      - "traefik.http.routers.wordpress-secure.rule=Host(`example.com`)"
+      - "traefik.http.routers.wordpress-secure.entrypoints=web-secure" 
+      # Enable TLS
+      - "traefik.http.routers.wordpress-secure.tls=true"
+      # Enable Let's Encrypt HTTP challenge
+      - "traefik.http.routers.traefik-secure-secured.tls.certresolver=letsencrypthttpchallenge"
+      # Enable HSTS
+ headers
+      - "traefik.http.middlewares.hstsheaders.headers.stsSeconds=315360000"
+      - "traefik.http.middlewares.hstsheaders.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.hstsheaders.headers.stsPreload=true"
+      - "traefik.http.middlewares.hstsheaders.headers.stsIncludeSubdomains=true"
+      - "traefik.http.routers.wordpress-secure.middlewares=hstsheaders" # Link the HSTS middlewares to the wordpresscp-secured router
+  mysql:
+    # this is the database used by WordPress
+    image: mysql:5.7
+    restart: always
+    environment:
+      # WordPress Database
+ entries
+      MYSQL_DATABASE: wordpressdb
+      MYSQL_USER: wordpressuser
+      MYSQL_PASSWORD: password
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      # The database will also be stored in ./db on your local machine and container itself
+      - ./db:/var/lib/mysql
+    networks:
+      # The Traefik network is not needed
+      - backend
