@@ -1,0 +1,67 @@
+version: '3'
+
+networks:
+  # Enable connection with Traefik
+  traefik:
+    external: true
+  # network for the app
+  backend:
+services:
+
+  nextcloud:
+    restart: always
+    image: nextcloud
+    environment:
+      # Hook Nextcloud up with MySQL 
+      NEXTCLOUD_DB_HOST: mysql:3306
+      NEXTCLOUD_DB_USER: nextclouduser
+      NEXTCLOUD_DB_PASSWORD: password
+      NEXTCLOUD_DB_NAME: nextclouddb
+    volumes:
+      # Store the contents of Nextcloud and enable local modifications
+      - ./data/volumes/nextcloud/html:/var/www/html
+    networks:
+      - traefik
+      - backend
+    depends_on:
+        - mysql
+    labels:
+      # Connect to Traefik
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # Middlewares Caldav
+      - "traefik.http.middlewares.nextcloud-caldav.redirectregex.permanent=true"
+      - "traefik.http.middlewares.nextcloud-caldav.redirectregex.regex=^https://(.*)/.well-known/(card|cal)dav"
+      - "traefik.http.middlewares.nextcloud-caldav.redirectregex.replacement=https://$${1}/remote.php/dav/"
+      # Connect Middleware Caldav with Nextcloud-router
+      - "traefik.http.routers.nextcloud-secure.middlewares=nextcloud-caldav@docker"
+      # Route HTTPS
+      - "traefik.http.routers.nextcloud-secure.entrypoints=web-secure"
+      - "traefik.http.routers.nextcloud-secure.rule=Host(`nextcloud.example.com`)"
+      # Enable TLS
+      - "traefik.http.routers.nextcloud-secure.tls=true"
+      # Enable Let's Encrypt HTTP challenge
+      - "traefik.http.routers.traefik-secure-secured.tls.certresolver=letsencrypthttpchallenge"
+      # Enable HSTS headers
+      - "traefik.http.middlewares.hstsheaders.headers.stsSeconds=315360000"
+      - "traefik.http.middlewares.hstsheaders.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.hstsheaders.headers.stsPreload=true"
+      - "traefik.http.middlewares.hstsheaders.headers.stsIncludeSubdomains=true"
+      - "traefik.http.routers.nextcloud-secure.middlewares=hstsheaders"
+      
+  mysql:
+    # The database Nextcloud will connect to
+    image: mysql:5.7
+    restart: always
+    environment:
+    # Nextcloud Database entries
+      MYSQL_DATABASE: nextclouddb
+      MYSQL_USER: nextclouduser
+      MYSQL_PASSWORD: password
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      # The database will also be stored in ./db on your local machine and container itself
+      - ./db:/var/lib/mysql
+    networks:
+      # The Traefik network is not needed here
+      - backend
