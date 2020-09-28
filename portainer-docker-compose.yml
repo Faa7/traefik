@@ -1,0 +1,42 @@
+version: '3'
+
+networks:
+  # here we will define the traefik network
+  traefik:
+    external: true
+  # the network for the application backend (portainer) itself
+  backend:
+  
+services:
+  portainer:
+    image: portainer/portainer-ce
+    container_name: portainer
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      # here we'll specify the traefik and the backend network
+      - traefik
+      - backend
+    volumes:
+      # Sync Time config
+      - /etc/localtime:/etc/localtime:ro 
+      # Load Docker sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+ 
+      # Local access portainer contents
+      - ./portainer-data:/data
+    labels:
+      # Enable Traefik and specify the network
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      # Web-secure https entrypoint
+      - "traefik.http.routers.portainer-secure.entrypoints=web-secure"
+      # FQDN
+      - "traefik.http.routers.portainer-secure.rule=Host(`portainer.example.com`)"
+      # Enable TLS
+      - "traefik.http.routers.portainer-secure.tls=true"
+      # Enable Let's Encrypt HTTP challenge
+      - "traefik.http.routers.traefik-secure-secured.tls.certresolver=letsencrypthttpchallenge"
+      - "traefik.http.routers.portainer-secure.service=portainer"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
