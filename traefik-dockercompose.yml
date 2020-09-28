@@ -1,0 +1,77 @@
+networks:
+    # Allow back-ends to communicate with this
+    traefik:
+        external: true
+        
+services:
+  traefik:
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    restart: always
+    command:
+      # Only if you want to use the Traefik Dashboard
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      # Define Docker as the provider here
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      # The location of where we will store our dynamic file with various configurations possible "on the fly"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      # Entrypoint -> is a front-end named "web" on HTTP Port 80
+      - "--entrypoints.web.address=:80"
+      # Entrypoint -> is a front-end named "web-secure" on HTTPS Port 443
+      - "--entrypoints.web-secure.address=:443"
+      # HTTP challenge as our method to acquire SSL certificates
+      - "--certificatesresolvers.letshttpchallenge.acme.httpchallenge=true"
+      - "--certificatesresolvers.letshttpchallenge.acme.httpchallenge.entrypoint=web"
+      # Define Let's Encrypt as the issuer
+      - "--certificatesresolvers.letsencrypthttpchallenge.acme.email=somemail@mail.com"
+      # Location of the acme.json file
+      - "--certificatesresolvers.letsencrypthttpchallenge.acme.storage=/letsencrypt/acme.json"
+    labels:
+      # Enable the world of traefik here
+      - "traefik.enable=true"
+      # This will enable SSL
+      - "traefik.http.routers.traefik-secure.tls=true"
+      # Enable Let's Encrypt HTTP challenge
+      - "traefik.http.routers.traefik-secure-secured.tls.certresolver=letsencrypthttpchallenge"
+      # Use the web-secure as our entrypoint at 443
+      - "traefik.http.routers.traefik-secure.entrypoints=web-secure"
+      # The router here is just called traefik-secure and the FQDN rule
+      - "traefik.http.routers.traefik-secure.rule=Host(`dashboard.example.com`)"
+      # Enable traefik-auth middleware to use
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+      # Refer to traefik's dashboard service
+      - "traefik.http.routers.traefik-secure.service=api@internal"
+      # Copypaste the password from the script
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=USER:PASSWORD"
+      # Global redirection: http to https
+      - traefik.http.routers.http-catchall.rule=HostRegexp(`{host:(www\.)?.+}`)
+      - traefik.http.routers.http-catchall.entrypoints=web
+      - traefik.http.routers.http-catchall.middlewares=wwwtohttps
+
+      # Global redirection: https (www.) to https
+      - traefik.http.routers.wwwsecure-catchall.rule=HostRegexp(`{host:(www\.).+}`)
+      - traefik.http.routers.wwwsecure-catchall.entrypoints=web-secure
+      - traefik.http.routers.wwwsecure-catchall.tls=true
+      - traefik.http.routers.wwwsecure-catchall.middlewares=wwwtohttps
+
+      # middleware: http(s)://(www.) to  https://
+      - traefik.http.middlewares.wwwtohttps.redirectregex.regex=^https?://(?:www\.)?(.+)
+      - traefik.http.middlewares.wwwtohttps.redirectregex.replacement=https://$${1}
+      - traefik.http.middlewares.wwwtohttps.redirectregex.permanent=true
+      
+    # Specifying the Ports Traefik will listen on
+    ports:
+      - "80:80"
+      - "443:443"
+    # The network Traefik will use is just traefik
+    networks:
+      - "traefik"
+    volumes:
+      # Docker socket
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      # Let's Encrypt certificates in ./letsencrypt/acme.json
+      - "./letsencrypt:/letsencrypt"
+      # Mount the dynamic file configuration
+      - ./dynamic-config.yaml:/etc/traefik/dynamic/dynamic-config.yaml
