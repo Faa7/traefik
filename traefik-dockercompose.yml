@@ -1,3 +1,5 @@
+version: "3.3"
+
 networks:
     # Allow back-ends to communicate with this
     traefik:
