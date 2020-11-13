@@ -1,0 +1,15 @@
+tls:
+  ### If you wish to use your paid SSL Certificates from e.g. DigiCert or GlobalSign###
+  #certificates:
+  #  - certFile: /etc/certs/fullchain.pem
+  #    keyFile: /etc/certs/privkey.pem
+  options:
+    default:
+      sniStrict: true
+      minVersion: VersionTLS12
+      maxVersion: VersionTLS13
+
+    mintls13:
+      minVersion: VersionTLS13
+    maxtls12:
+      maxVersion: VersionTLS12
