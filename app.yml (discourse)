@@ -1,0 +1,20 @@
+expose:
+#  - "80:80"   # http
+#  - "443:443" # https
+
+labels:
+  app_name:                                                                     discourse
+
+  #----Enabling Traefik and its network------------------------
+  traefik.enable:                                                               true
+  traefik.docker.network:                                                       traefik
+   #---HTTPS Router with rule FQDN
+  traefik.http.routers.discourse-secure.rule:                                   Host(`forums.example.com`)
+  traefik.http.routers.discourse-secure.entrypoints:                            web-secure
+  traefik.http.services.discourse-secure.loadbalancer.server.port:              80
+    #--TLS SECTION
+  traefik.http.routers.discourse-secure.tls.certresolver:                       letsencrypthttpchallenge
+  traefik.http.routers.discourse-secure.tls:                                    true
+
+docker_args:
+  - "--network=traefik"
