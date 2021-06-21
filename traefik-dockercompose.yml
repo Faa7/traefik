@@ -14,6 +14,7 @@ services:
       # Only if you want to use the Traefik Dashboard
       - "--log.level=DEBUG"
       - "--api.dashboard=true"
+      - "--api.insecure=false"
       # Define Docker as the provider here
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
