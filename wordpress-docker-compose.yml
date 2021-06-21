@@ -37,12 +37,8 @@ networks:
       - "traefik.http.routers.wordpress-secure.tls=true"
       # Enable Let's Encrypt HTTP challenge
       - "traefik.http.routers.traefik-secure-secured.tls.certresolver=letsencrypthttpchallenge"
-      # Enable HSTS headers
-      - "traefik.http.middlewares.hstsheaders.headers.stsSeconds=315360000"
-      - "traefik.http.middlewares.hstsheaders.headers.forceSTSHeader=true"
-      - "traefik.http.middlewares.hstsheaders.headers.stsPreload=true"
-      - "traefik.http.middlewares.hstsheaders.headers.stsIncludeSubdomains=true"
-      - "traefik.http.routers.wordpress-secure.middlewares=hstsheaders" # Link the HSTS middlewares to the wordpresscp-secured router
+      # Enable HSTS headers and other security headers
+      - "traefik.http.routers.wordpress-secure.middlewares=myheaders@file"
   mysql:
     # this is the database used by WordPress
     image: mysql:5.7
