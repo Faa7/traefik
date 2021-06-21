@@ -41,12 +41,12 @@ services:
       - "traefik.http.routers.traefik-secure.entrypoints=web-secure"
       # The router here is just called traefik-secure and the FQDN rule
       - "traefik.http.routers.traefik-secure.rule=Host(`dashboard.example.com`)"
-      # Enable traefik-auth middleware to use
-      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
       # Refer to traefik's dashboard service
       - "traefik.http.routers.traefik-secure.service=api@internal"
-      # Copypaste the password from the script
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=USER:PASSWORD"
+      # Either use one of the following two below.
+      - "traefik.http.routers.traefik-secure.middlewares=traefik-auth@file"
+      #- "traefik.http.routers.traefik-secure.middlewares=homenetwork-ipwhitelist@file"
+      
       # Global redirection: http to https
       - traefik.http.routers.http-catchall.rule=HostRegexp(`{host:(www\.)?.+}`)
       - traefik.http.routers.http-catchall.entrypoints=web
