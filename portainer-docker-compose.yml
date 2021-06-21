@@ -40,3 +40,5 @@ services:
       - "traefik.http.routers.traefik-secure-secured.tls.certresolver=letsencrypthttpchallenge"
       - "traefik.http.routers.portainer-secure.service=portainer"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      # Limit access to Portainer with IP whitelisting
+      - "traefik.http.routers.portainer-secure.middlewares=homenetwork-ipwhitelist@file"
